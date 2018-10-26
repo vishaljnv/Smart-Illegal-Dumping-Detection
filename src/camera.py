@@ -14,6 +14,10 @@ class Camera:
                    "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                    "videoconvert ! appsink").format(uri, latency, self.width, self.height)
         self.cap = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+
+        if not self.cap.isOpened():
+            raise Exception("Could not open RSTP camera!")
+
         return True
 
     def open_cam_usb(self, dev):
@@ -24,7 +28,11 @@ class Camera:
                    "videorate !"
                    "video/x-raw,framerate=1/1 !"
                    "videoconvert ! appsink").format(dev, self.width, self.height)
-        self.cap = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+        self.cap = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)\
+
+        if not self.cap.isOpened():
+            raise Exception("Could not open USB camera!")
+
         return True
 
     def open_cam_onboard(self):
@@ -35,6 +43,10 @@ class Camera:
                    "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                    "videoconvert ! appsink").format(self.width, self.height)
         self.cap = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+
+        if not self.cap.isOpened():
+            raise Exception("Could not open On-board camera!")
+
         return True
 
     def open_window(self, windowName, title="Camera Demo for Jetson TX2/TX1"):
@@ -77,8 +89,16 @@ class Camera:
             else:
                cv2.setWindowProperty(windowName, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
 
+
+    def release(self):
+        if self.cap and self.cap.isOpened():
+            self.cap.release()
+
+        cv2.destroyAllWindows()
+
+
     def __del__(self):
-        if self.cap.isOpened():
-            cap.release()
+        if self.cap and self.cap.isOpened():
+            self.cap.release()
 
         cv2.destroyAllWindows()
