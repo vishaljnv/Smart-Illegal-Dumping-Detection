@@ -56,12 +56,15 @@ class Camera:
         cv2.setWindowTitle(windowName, title)
 
     def capture_image(self, fileName, showImage=False, windowName="Nvidia Jetson Tx2"):
+        capture_time = time.time()
         ret, frame = self.cap.read()
-
+        print "Capture Time: ", time.time() - capture_time
         if showImage:
             show_image(frame, windowName)
 
+        write_time = time.time()
         cv2.imwrite(fileName, frame)
+        print "Write Time: ", time.time() - write_time
 
     def show_image(self, frame, windowName):
         showHelp = True

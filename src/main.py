@@ -1,22 +1,21 @@
 #!/usr/bin/python
 import time
-begin_time = time.time()
 import gps
 import os
 import cv2
-#import matplotlib as mp
 import requests
 import json
 import datetime
 import base64
 import sys
+
+#Internal APIs and config
 from camera import Camera
+from http_client import HttpClient
+from config import *
 
 sys.path.append(os.path.join('/home/nvidia/darknet/','python/')) #join darknet path to home to import 
 import darknet as dn
-
-mp.use('Agg')
-client = HttpClient("130.65.159.74")
 
 use_rtsp = 0
 use_usb = 1
@@ -26,43 +25,17 @@ rtsp_uri = None
 rtsp_latency = 200
 video_dev = 0
 
-global cam
-cam = None
+global cam, classifier_list, images, classifier, path, dstdir, images_list_file, camera_list, labels_list, cur_location, client, home, net, meta
 
+cam = None
 classifier_list = []
 images = []
 classifier = []
 path = "/home/nvidia/Downloads/Raw_Images"
 dstdir = "/home/nvidia/Downloads/Classified_Images"
-
 images_list_file = []
 camera_list = []
 labels_list = ['cart', 'electronics','furniture', 'mattress', 'sofa', 'trash_bags', 'trash']
-
-windowName = "CameraDemo"
-
-gpsd = gps.gps(mode=WATCH_ENABLE)
-cur_location = str(gpsd.fix.latitude)+","+ str(gpsd.fix.longitude)
-
-if not client.is_server_up():
-    print "Server is down!"
-
-if not client.register_with_server():
-    print "Could not register with server!"
-
-if not client.connect_to_server(cur_location):
-    print "Could not connect to server!"
-
-
-#Load config files
-dn.set_gpu(0)
-home = os.expanduser("~")
-net = dn.load_net(bytes(home+ "/darknet/yolo-obj.cfg"), bytes(home + "/darknet/yolo-obj_40000.weights"), 0)
-meta = dn.load_meta(bytes(home + "/darknet/obj.data"))
-if not os.path.exists(home+'/Downloads/Raw_Images'):
-	os.makedirs(home+'/Downloads/Raw_Images');
-if not os.path.exists(home+'/Downloads/Classified_Images'):
-	os.makedirs(home+'/Downloads/Classified_Images');
 
 def open_cam():	
     global cam
@@ -87,40 +60,65 @@ def take_pictures(mydir_tegra):
         count += 1
 
 
-open_cam()
+def load_all_config():
+    global cam, classifier_list, images, classifier, path, dstdir, images_list_file, camera_list, labels_list, cur_location, client, home, net, meta
+    dn.set_gpu(0)
+    net = dn.load_net(bytes(home+ "/darknet/yolo-obj.cfg"), bytes(home + "/darknet/yolo-obj_40000.weights"), 0)
+    meta = dn.load_meta(bytes(home + "/darknet/obj.data"))
+
+
+def start_up():
+    global cam, classifier_list, images, classifier, path, dstdir, images_list_file, camera_list, labels_list, cur_location, client, home, net, meta
+    home = os.path.expanduser("~")
+    open_cam()
+    client = HttpClient("130.65.159.74")
+    load_all_config()
+
+    if not os.path.exists(home+'/Downloads/Raw_Images'):
+        os.makedirs(home+'/Downloads/Raw_Images');
+    if not os.path.exists(home+'/Downloads/Classified_Images'):
+        os.makedirs(home+'/Downloads/Classified_Images');
+
+    gpsd = gps.gps(mode=gps.WATCH_ENABLE)
+    cur_location = str(gpsd.fix.latitude)+","+ str(gpsd.fix.longitude)
+
+    if not client.is_server_up():
+        print "Server is down!"
+
+    if not client.register_with_server():
+        print "Could not register with server!"
+
+    if not client.connect_to_server(cur_location):
+        print "Could not connect to server!"
 
 
 def main():
-	while True:
-                location  = "here, there"
-		start = time.time()
-		print (datetime.datetime.now())
-		mydir_tegra = os.path.join(home + '/Downloads/Raw_Images/',(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')))
-		mydir_illegal = os.path.join(home + '/Downloads/Classified_Images/',datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
-		os.makedirs(mydir_tegra)
-		os.makedirs(mydir_illegal)
-		mydir_tegra += '/'
-		mydir_illegal += '/'
-		cam_time = time.time()
-		take_pictures(mydir_tegra)
-		print "Capture time:", time.time() - cam_time
-		test_time = time.time()
-		testing_illegal(mydir_tegra, mydir_illegal)
-		latency_detect = time.time() - test_time
-		client.send_detection_results(images, classifier_list, location)
-		latency_total = time.time() - begin_time 
-		latency_once = time.time() - start
-		print ("Total time from load to send alerts:"+str(latency_total)+" Total time from capture to send alerts:"+str(latency_once)+" Total time for detection:"+str(latency_detect))
-                print "\n\n\n\n"
-		time.sleep(10)
-		mydir_tegra = ""
-		mydir_illegal = ""
-		images = []
-		images_list_file = []
+    global cam, classifier_list, images, classifier, path, dstdir, images_list_file, camera_list, labels_list, cur_location, client, home, net, meta
+    while True:
+        start = time.time()
+        mydir_tegra = os.path.join(home + '/Downloads/Raw_Images/',(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')))
+        mydir_illegal = os.path.join(home + '/Downloads/Classified_Images/',datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+        os.makedirs(mydir_tegra)
+        os.makedirs(mydir_illegal)
+        mydir_tegra += '/'
+        mydir_illegal += '/'
+        cam_time = time.time()
+        take_pictures(mydir_tegra)
+        print "Total Capture time:", time.time() - cam_time
+        test_time = time.time()
+        testing_illegal(mydir_tegra, mydir_illegal)
+        latency_detect = time.time() - test_time
+        client.send_detection_results(images, classifier_list, cur_location)
+        latency_once = time.time() - start
+        print (" Total time from capture to send alerts:"+str(latency_once)+" Total time for detection:"+str(latency_detect))
+        print "\n\n\n\n"
+        time.sleep(10)
+        images = []
+        images_list_file = []
 
 
 def testing_illegal(mydir_tegra, mydir_illegal):
-
+        global cam, classifier_list, images, classifier, path, dstdir, images_list_file, camera_list, labels_list, cur_location, client, home, net, meta
 	#Raw folder path
 	folder_raw = mydir_tegra
 	print (mydir_tegra)
@@ -195,4 +193,10 @@ def testing_illegal(mydir_tegra, mydir_illegal):
 
 
 if __name__ == "__main__":
-	main()
+    try:
+        start_up()
+    except Exception, ex:
+        print "Failed to Start Up! Error: ", str(ex)
+        sys.exit(-1)
+
+    main()

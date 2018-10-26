@@ -2,6 +2,7 @@ import requests
 import json
 import base64
 from utils import *
+from config import *
 
 class HttpClient:
 
@@ -14,7 +15,7 @@ class HttpClient:
         url = self.base_url + "/test"
         data = {"data":"test request"}
         r = requests.post(url, data=json.dumps(data), headers=self.headers)
-        if r.status_code != requests.status_codes.ok:
+        if r.status_code != requests.codes.ok:
             return False
 
         return True
@@ -27,7 +28,7 @@ class HttpClient:
                  "description": "Hi there!" }
 
         r = requests.post(url, data=json.dumps(data), headers=self.headers)
-        if r.status_code != requests.status_codes.ok:
+        if r.status_code != requests.codes.ok:
             return False
 
         self.station_id = json.loads(r.content)["station_id"]
@@ -40,7 +41,7 @@ class HttpClient:
                  "location": location}
 
         r = requests.post(url, data=json.dumps(data), headers=self.headers)
-        if r.status_code != requests.status_codes.ok:
+        if r.status_code != requests.codes.ok:
             return False
 
         return True
@@ -58,7 +59,7 @@ class HttpClient:
                 data["images"].append(encoded_string)
 
         r = requests.post(url, data=json.dumps(data), headers=self.headers)
-        if r.status_code != requests.status_codes.ok:
+        if r.status_code != requests.codes.ok:
             return False
 
         return True
