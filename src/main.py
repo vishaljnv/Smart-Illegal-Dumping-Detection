@@ -59,6 +59,7 @@ def take_pictures(mydir_tegra):
         cam.capture_image(file_name)
         count += 1
 
+    return count - 1
 
 def load_all_config():
     global cam, classifier_list, images, classifier, path, dstdir, images_list_file, camera_list, labels_list, cur_location, client, home, net, meta
@@ -103,8 +104,8 @@ def main():
         mydir_tegra += '/'
         mydir_illegal += '/'
         cam_time = time.time()
-        take_pictures(mydir_tegra)
-        print "Total Capture time:", time.time() - cam_time
+        pics = take_pictures(mydir_tegra)
+        print "Captured %d pictures in %fs"%(pics, time.time() - cam_time)
         test_time = time.time()
         testing_illegal(mydir_tegra, mydir_illegal)
         latency_detect = time.time() - test_time

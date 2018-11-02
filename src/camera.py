@@ -4,10 +4,11 @@ import time
 class Camera:
     """API for Camera interface on Nvidia Jetson TX2 using OpenCV"""
 
-    def __init__(self, height, width):
+    def __init__(self, height, width, fps=30):
         self.height = height
         self.width = width
         self.cap = None
+        self.fps = fps
 
     def open_cam_rtsp(self, uri, latency):
         gst_str = ("rtspsrc location={} latency={} ! rtph264depay ! h264parse ! omxh264dec ! "
@@ -26,8 +27,8 @@ class Camera:
         gst_str = ("v4l2src device=/dev/video{} ! "
                    "video/x-raw, width=(int){}, height=(int){}, format=(string)RGB ! "
                    "videorate !"
-                   "video/x-raw,framerate=1/1 !"
-                   "videoconvert ! appsink").format(dev, self.width, self.height)
+                   "video/x-raw,framerate={}/1 !"
+                   "videoconvert ! appsink").format(dev, self.width, self.height, self.fps)
         self.cap = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)\
 
         if not self.cap.isOpened():
@@ -39,9 +40,9 @@ class Camera:
         # On versions of L4T previous to L4T 28.1, flip-method=2
         # Use Jetson onboard camera
         gst_str = ("nvcamerasrc ! "
-                   "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1458, format=(string)I420, framerate=(fraction)30/1 ! "
+                   "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1458, format=(string)I420, framerate=(fraction){}/1 ! "
                    "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
-                   "videoconvert ! appsink").format(self.width, self.height)
+                   "videoconvert ! appsink").format(self.fps, self.width, self.height)
         self.cap = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
         if not self.cap.isOpened():
