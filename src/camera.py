@@ -31,22 +31,8 @@ class Camera:
                    "videoconvert ! appsink").format(dev, self.width, self.height, self.fps)
         self.cap = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)\
 
-        if not self.cap.isOpened():
-            raise Exception("Could not open USB camera!")
-
-        return True
-
-    def open_cam_onboard(self):
-        # On versions of L4T previous to L4T 28.1, flip-method=2
-        # Use Jetson onboard camera
-        gst_str = ("nvcamerasrc ! "
-                   "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1458, format=(string)I420, framerate=(fraction){}/1 ! "
-                   "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
-                   "videoconvert ! appsink").format(self.fps, self.width, self.height)
-        self.cap = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-
-        if not self.cap.isOpened():
-            raise Exception("Could not open On-board camera!")
+      # if not self.cap.isOpened():
+      #      raise Exception("Could not open USB camera!")
 
         return True
 
@@ -56,16 +42,17 @@ class Camera:
         cv2.moveWindow(windowName, 0, 0)
         cv2.setWindowTitle(windowName, title)
 
-    def capture_image(self, fileName, showImage=False, windowName="Nvidia Jetson Tx2"):
+    def capture_image(self, fileName=False, showImage=False, windowName="Nvidia Jetson Tx2"):
         capture_time = time.time()
         ret, frame = self.cap.read()
         print "Capture Time: ", time.time() - capture_time
         if showImage:
             show_image(frame, windowName)
-
         write_time = time.time()
-        cv2.imwrite(fileName, frame)
+        if fileName:
+            cv2.imwrite(fileName, frame) 
         print "Write Time: ", time.time() - write_time
+        return frame
 
     def show_image(self, frame, windowName):
         showHelp = True

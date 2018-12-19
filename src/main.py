@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import time
 import gps
 import os
